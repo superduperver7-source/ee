@@ -1,0 +1,62 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local visualModel = character:Clone()
+visualModel.Parent = workspace
+for _, part in ipairs(visualModel:GetDescendants()) do
+	if part:IsA("BasePart") then
+		part.Anchored = true
+		part.CanCollide = false
+	end
+end
+
+local flying = false
+local speed = 25
+local increment = 2
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0,200,0,50)
+flyButton.Position = UDim2.new(0,20,0,20)
+flyButton.Text = "Toggle Fly"
+flyButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyButton.TextColor3 = Color3.fromRGB(255,255,255)
+flyButton.Parent = screenGui
+
+flyButton.MouseButton1Click:Connect(function()
+	flying = not flying
+end)
+
+local visualCFrame = hrp.CFrame
+
+RunService.RenderStepped:Connect(function(dt)
+	if flying then
+		local moveVector = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveVector += visualCFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveVector -= visualCFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveVector -= visualCFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveVector += visualCFrame.RightVector
+		end
+		if moveVector.Magnitude > 0 then
+			visualCFrame = visualCFrame + moveVector.Unit * speed * dt
+			visualModel:SetPrimaryPartCFrame(visualCFrame)
+			local direction = (visualCFrame.Position - hrp.Position)
+			if direction.Magnitude > increment then
+				hrp.CFrame = hrp.CFrame + direction.Unit * increment
+			end
+		end
+	end
+end)
