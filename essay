@@ -1,0 +1,79 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local Toggle = Instance.new("TextButton")
+Toggle.Size = UDim2.new(0,150,0,40)
+Toggle.Position = UDim2.new(0.05,0,0.1,0)
+Toggle.Text = "Invisibility Gimmick: OFF"
+Toggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Toggle.TextColor3 = Color3.fromRGB(255,255,255)
+Toggle.Parent = ScreenGui
+
+local gimmickEnabled = false
+Toggle.MouseButton1Click:Connect(function()
+	gimmickEnabled = not gimmickEnabled
+	Toggle.Text = gimmickEnabled and "Invisibility Gimmick: ON" or "Invisibility Gimmick: OFF"
+end)
+
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.E then
+		gimmickEnabled = true
+		Toggle.Text = "Invisibility Gimmick: ON"
+	end
+end)
+UIS.InputEnded:Connect(function(input, gpe)
+	if input.KeyCode == Enum.KeyCode.E then
+		gimmickEnabled = false
+		Toggle.Text = "Invisibility Gimmick: OFF"
+	end
+end)
+
+local originalCFrames = {}
+for _, part in ipairs(char:GetDescendants()) do
+	if part:IsA("BasePart") then
+		originalCFrames[part] = part.CFrame
+	end
+end
+
+RunService.RenderStepped:Connect(function()
+	if gimmickEnabled and char then
+		for _, part in ipairs(char:GetDescendants()) do
+			if part:IsA("BasePart") and part ~= hrp then
+				local offsetX = math.random(-5,5)
+				local offsetY = math.random(-20,-10)
+				local offsetZ = math.random(-5,5)
+				part.CFrame = hrp.CFrame + Vector3.new(offsetX, offsetY, offsetZ)
+				part.Transparency = 1
+			end
+			if part:IsA("Accessory") or part:IsA("Hat") then
+				part.Handle.Transparency = 1
+			end
+		end
+	else
+		for part, cf in pairs(originalCFrames) do
+			if part and part.Parent then
+				part.CFrame = cf
+				part.Transparency = 0
+			end
+		end
+	end
+end)
+
+player.CharacterAdded:Connect(function(newChar)
+	char = newChar
+	hrp = char:WaitForChild("HumanoidRootPart")
+	originalCFrames = {}
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			originalCFrames[part] = part.CFrame
+		end
+	end
+end)
