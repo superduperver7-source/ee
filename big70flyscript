@@ -1,0 +1,60 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local speed = 25
+local flying = false
+local moveDirection = Vector3.new(0,0,0)
+
+local function updateMovement()
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame + moveDirection * speed * RunService.Heartbeat:Wait()
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.W then
+        moveDirection = moveDirection + humanoidRootPart.CFrame.LookVector
+    elseif input.KeyCode == Enum.KeyCode.S then
+        moveDirection = moveDirection - humanoidRootPart.CFrame.LookVector
+    elseif input.KeyCode == Enum.KeyCode.A then
+        moveDirection = moveDirection - humanoidRootPart.CFrame.RightVector
+    elseif input.KeyCode == Enum.KeyCode.D then
+        moveDirection = moveDirection + humanoidRootPart.CFrame.RightVector
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.W then
+        moveDirection = moveDirection - humanoidRootPart.CFrame.LookVector
+    elseif input.KeyCode == Enum.KeyCode.S then
+        moveDirection = moveDirection + humanoidRootPart.CFrame.LookVector
+    elseif input.KeyCode == Enum.KeyCode.A then
+        moveDirection = moveDirection + humanoidRootPart.CFrame.RightVector
+    elseif input.KeyCode == Enum.KeyCode.D then
+        moveDirection = moveDirection - humanoidRootPart.CFrame.RightVector
+    end
+end)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0,200,0,50)
+flyButton.Position = UDim2.new(0,20,0,20)
+flyButton.Text = "Toggle Fly"
+flyButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyButton.TextColor3 = Color3.fromRGB(255,255,255)
+flyButton.Parent = screenGui
+
+flyButton.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        while flying do
+            updateMovement()
+        end
+    end
+end)
