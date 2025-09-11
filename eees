@@ -1,0 +1,66 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local Toggle = Instance.new("TextButton")
+Toggle.Size = UDim2.new(0,200,0,40)
+Toggle.Position = UDim2.new(0.05,0,0.1,0)
+Toggle.Text = "Extended Reach: OFF"
+Toggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Toggle.TextColor3 = Color3.fromRGB(255,255,255)
+Toggle.Parent = ScreenGui
+
+local extenderEnabled = false
+Toggle.MouseButton1Click:Connect(function()
+	extenderEnabled = not extenderEnabled
+	Toggle.Text = extenderEnabled and "Extended Reach: ON" or "Extended Reach: OFF"
+end)
+
+local EXTEND_DISTANCE = 15
+
+local visual = Instance.new("Part")
+visual.Anchored = true
+visual.CanCollide = false
+visual.Transparency = 0.5
+visual.Size = Vector3.new(EXTEND_DISTANCE*2,EXTEND_DISTANCE*2,EXTEND_DISTANCE*2)
+visual.Color = Color3.fromRGB(0,255,0)
+visual.Parent = workspace
+
+RunService.RenderStepped:Connect(function()
+	if extenderEnabled and hrp then
+		visual.CFrame = hrp.CFrame
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("ProximityPrompt") then
+				local dist = (obj.Parent.Position - hrp.Position).Magnitude
+				if dist <= EXTEND_DISTANCE then
+					obj:InputHoldBegin()
+					obj:InputHoldEnd()
+				end
+			elseif obj:IsA("ClickDetector") then
+				local dist = (obj.Parent.Position - hrp.Position).Magnitude
+				if dist <= EXTEND_DISTANCE and obj.Parent:FindFirstChildWhichIsA("RemoteEvent") then
+					obj.Parent:FindFirstChildWhichIsA("RemoteEvent"):FireServer()
+				end
+			elseif obj:IsA("BasePart") and obj:FindFirstChildWhichIsA("TouchTransmitter") then
+				local dist = (obj.Position - hrp.Position).Magnitude
+				if dist <= EXTEND_DISTANCE then
+					for _, conn in ipairs(obj:GetConnections()) do
+						conn:Fire(hrp)
+					end
+				end
+			end
+		end
+	else
+		visual.CFrame = CFrame.new(0,-9999,0)
+	end
+end)
+
+player.CharacterAdded:Connect(function(newChar)
+	char = newChar
+	hrp = char:WaitForChild("HumanoidRootPart")
+end)
