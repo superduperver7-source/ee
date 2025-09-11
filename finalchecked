@@ -1,0 +1,48 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local flySpeed = 25
+local incrementSpeed = 5
+
+local targetPosition = hrp.Position
+
+local visualModel = character:Clone()
+visualModel.Parent = workspace
+visualModel:MoveTo(hrp.Position)
+for _, part in pairs(visualModel:GetDescendants()) do
+	if part:IsA("BasePart") then
+		part.CanCollide = false
+	end
+end
+
+RunService.RenderStepped:Connect(function(dt)
+	if flying then
+		local direction = (targetPosition - visualModel.HumanoidRootPart.Position)
+		if direction.Magnitude > 0.1 then
+			visualModel:SetPrimaryPartCFrame(visualModel.PrimaryPart.CFrame + direction.Unit * flySpeed * dt)
+			hrp.CFrame = hrp.CFrame + direction.Unit * incrementSpeed * dt
+		end
+	end
+end)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0,200,0,50)
+flyButton.Position = UDim2.new(0,20,0,20)
+flyButton.Text = "Toggle Fly"
+flyButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyButton.TextColor3 = Color3.fromRGB(255,255,255)
+flyButton.Parent = screenGui
+
+flyButton.MouseButton1Click:Connect(function()
+	flying = not flying
+	if flying then
+		targetPosition = visualModel.HumanoidRootPart.Position
+	end
+end)
