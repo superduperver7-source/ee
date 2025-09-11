@@ -1,0 +1,87 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+local visualSpeed = 50
+local hitboxSpeed = 15
+local jumpThreshold = 3
+local moveKeys = {W=false, A=false, S=false, D=false}
+local active = false
+
+local clone = character:Clone()
+clone.Parent = workspace
+clone.Name = "VisualClone"
+for _, part in ipairs(clone:GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.CanCollide = false
+    end
+end
+clone.PrimaryPart = clone:FindFirstChild("HumanoidRootPart")
+clone:SetPrimaryPartCFrame(hrp.CFrame)
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then moveKeys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then moveKeys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then moveKeys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then moveKeys.D = true end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then moveKeys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then moveKeys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then moveKeys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then moveKeys.D = false end
+end)
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Text = "Toggle Noclip Gimic"
+toggleButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+toggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+toggleButton.Parent = screenGui
+
+toggleButton.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0,200,0)
+    else
+        toggleButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        clone:SetPrimaryPartCFrame(hrp.CFrame)
+    end
+end)
+
+RunService.Heartbeat:Connect(function(dt)
+    if not active then return end
+    local direction = Vector3.new()
+    if moveKeys.W then direction = direction + clone.PrimaryPart.CFrame.LookVector end
+    if moveKeys.S then direction = direction - clone.PrimaryPart.CFrame.LookVector end
+    if moveKeys.A then direction = direction - clone.PrimaryPart.CFrame.RightVector end
+    if moveKeys.D then direction = direction + clone.PrimaryPart.CFrame.RightVector end
+
+    if direction.Magnitude > 0 then
+        direction = direction.Unit
+        clone:SetPrimaryPartCFrame(clone.PrimaryPart.CFrame + direction * visualSpeed * dt)
+
+        local hitboxDir = (clone.PrimaryPart.Position - hrp.Position)
+        if hitboxDir.Magnitude > 0 then
+            local moveVec = hitboxDir.Unit * math.min(hitboxSpeed * dt, hitboxDir.Magnitude)
+            if math.abs(moveVec.Y) > jumpThreshold * dt then
+                moveVec = Vector3.new(moveVec.X, jumpThreshold * dt * (moveVec.Y/ math.abs(moveVec.Y)), moveVec.Z)
+            end
+            local newPos = hrp.Position + moveVec
+            local region = Region3.new(newPos - Vector3.new(2,3,2), newPos + Vector3.new(2,3,2))
+            local partsInWay = workspace:FindPartsInRegion3(region, character, math.huge)
+            if #partsInWay == 0 then
+                hrp.CFrame = CFrame.new(newPos)
+            end
+        end
+    end
+end)
