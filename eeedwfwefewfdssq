@@ -1,0 +1,17 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local workspace = game:GetService("Workspace")
+local basePart = workspace:FindFirstChild("BasePart") -- change "BasePart" to the actual name of your base part
+local basePosition = basePart and basePart.Position or Vector3.new(100, 5, 100)
+
+local speed = 15
+
+local function flyToBase()
+    local direction = (basePosition - humanoidRootPart.Position).Unit
+    while (humanoidRootPart.Position - basePosition).Magnitude > 1 do
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + direction * speed * game:GetService("RunService").Heartbeat:Wait()
+    end
+end
