@@ -1,0 +1,55 @@
+local player = {Health = 100, Position = {x = 0, y = 0, z = 0}, Visible = true}
+local simulationEnabled = true
+local invisibilityEnabled = false
+
+local function sendEventToServer(eventName, data)
+    if not simulationEnabled then
+        print("Simulation OFF, event ignored:", eventName)
+        return
+    end
+
+    if invisibilityEnabled and eventName == "MovePlayer" then
+        local fakeX = player.Position.x + math.random(-50, 50)
+        local fakeY = player.Position.y + math.random(-50, 50)
+        local fakeZ = player.Position.z + math.random(-50, 50)
+        print("Fake invisibility active. Sending fake position:", {x=fakeX, y=fakeY, z=fakeZ})
+        player.Position = {x=fakeX, y=fakeY, z=fakeZ}
+    else
+        player.Position.x = player.Position.x + (data.x or 0)
+        player.Position.y = player.Position.y + (data.y or 0)
+        player.Position.z = player.Position.z + (data.z or 0)
+        print("Event sent to server:", eventName, data)
+    end
+end
+
+local function executeCommand(commandName, data)
+    sendEventToServer(commandName, data)
+    print("Current player state:", player)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SimulationGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local ToggleSim = Instance.new("TextButton")
+ToggleSim.Size = UDim2.new(0, 200, 0, 50)
+ToggleSim.Position = UDim2.new(0.5, -100, 0.1, 0)
+ToggleSim.Text = "Simulation: ON"
+ToggleSim.Parent = ScreenGui
+ToggleSim.MouseButton1Click:Connect(function()
+    simulationEnabled = not simulationEnabled
+    ToggleSim.Text = "Simulation: " .. (simulationEnabled and "ON" or "OFF")
+end)
+
+local ToggleInvis = Instance.new("TextButton")
+ToggleInvis.Size = UDim2.new(0, 200, 0, 50)
+ToggleInvis.Position = UDim2.new(0.5, -100, 0.25, 0)
+ToggleInvis.Text = "Invisibility: OFF"
+ToggleInvis.Parent = ScreenGui
+ToggleInvis.MouseButton1Click:Connect(function()
+    invisibilityEnabled = not invisibilityEnabled
+    ToggleInvis.Text = "Invisibility: " .. (invisibilityEnabled and "ON" or "OFF")
+end)
+
+executeCommand("MovePlayer", {x=5, y=0, z=0})
+executeCommand("MovePlayer", {x=-3, y=0, z=2})
