@@ -1,0 +1,78 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local speed = 25
+local flying = false
+local moveDirection = Vector3.new(0,0,0)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0,200,0,50)
+flyButton.Position = UDim2.new(0,20,0,20)
+flyButton.Text = "Start Flying"
+flyButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyButton.TextColor3 = Color3.fromRGB(255,255,255)
+flyButton.Parent = screenGui
+
+local stopButton = Instance.new("TextButton")
+stopButton.Size = UDim2.new(0,200,0,50)
+stopButton.Position = UDim2.new(0,20,0,80)
+stopButton.Text = "Stop Flying"
+stopButton.BackgroundColor3 = Color3.fromRGB(150,50,50)
+stopButton.TextColor3 = Color3.fromRGB(255,255,255)
+stopButton.Parent = screenGui
+
+local function updateMoveDirection(input, isPressed)
+    local value = isPressed and 1 or 0
+    if input.KeyCode == Enum.KeyCode.W then
+        moveDirection = Vector3.new(moveDirection.X, moveDirection.Y, -value)
+    elseif input.KeyCode == Enum.KeyCode.S then
+        moveDirection = Vector3.new(moveDirection.X, moveDirection.Y, value)
+    elseif input.KeyCode == Enum.KeyCode.A then
+        moveDirection = Vector3.new(-value, moveDirection.Y, moveDirection.Z)
+    elseif input.KeyCode == Enum.KeyCode.D then
+        moveDirection = Vector3.new(value, moveDirection.Y, moveDirection.Z)
+    elseif input.KeyCode == Enum.KeyCode.Space then
+        moveDirection = Vector3.new(moveDirection.X, value, moveDirection.Z)
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        moveDirection = Vector3.new(moveDirection.X, -value, moveDirection.Z)
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe then
+        updateMoveDirection(input, true)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gpe)
+    if not gpe then
+        updateMoveDirection(input, false)
+    end
+end)
+
+local function fly()
+    flying = true
+    while flying do
+        local dt = RunService.Heartbeat:Wait()
+        local camCFrame = workspace.CurrentCamera.CFrame
+        local move = (camCFrame.LookVector * moveDirection.Z + camCFrame.RightVector * moveDirection.X + Vector3.new(0, moveDirection.Y, 0)).Unit
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + move * speed * dt
+    end
+end
+
+flyButton.MouseButton1Click:Connect(function()
+    if not flying then
+        fly()
+    end
+end)
+
+stopButton.MouseButton1Click:Connect(function()
+    flying = false
+end)
