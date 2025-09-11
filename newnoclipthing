@@ -1,0 +1,81 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local speed = 15
+local velocity = Vector3.new(0,0,0)
+local flying = false
+
+local keys = {
+    W = false,
+    A = false,
+    S = false,
+    D = false
+}
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+end)
+
+local function startFlying()
+    flying = true
+    humanoidRootPart.Anchored = true
+    RunService.RenderStepped:Connect(function(delta)
+        if not flying then return end
+        local cam = workspace.CurrentCamera
+        local forward = cam.CFrame.LookVector
+        local right = cam.CFrame.RightVector
+
+        velocity = Vector3.new(0,0,0)
+        if keys.W then velocity = velocity + forward end
+        if keys.S then velocity = velocity - forward end
+        if keys.A then velocity = velocity - right end
+        if keys.D then velocity = velocity + right end
+
+        if velocity.Magnitude > 0 then
+            velocity = velocity.Unit * speed * delta
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame + velocity
+        end
+    end)
+end
+
+local function stopFlying()
+    flying = false
+    humanoidRootPart.Anchored = false
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0, 200, 0, 50)
+flyButton.Position = UDim2.new(0, 20, 0, 20)
+flyButton.Text = "Start Fly"
+flyButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyButton.TextColor3 = Color3.fromRGB(255,255,255)
+flyButton.Parent = screenGui
+
+local stopButton = Instance.new("TextButton")
+stopButton.Size = UDim2.new(0, 200, 0, 50)
+stopButton.Position = UDim2.new(0, 20, 0, 80)
+stopButton.Text = "Stop Fly"
+stopButton.BackgroundColor3 = Color3.fromRGB(150,50,50)
+stopButton.TextColor3 = Color3.fromRGB(255,255,255)
+stopButton.Parent = screenGui
+
+flyButton.MouseButton1Click:Connect(startFlying)
+stopButton.MouseButton1Click:Connect(stopFlying)
