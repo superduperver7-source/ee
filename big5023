@@ -1,0 +1,47 @@
+local player = {Health = 100, Position = {x = 0, y = 0, z = 0}}
+local server = {}
+
+local simulationEnabled = true
+
+local function sendEventToServer(eventName, data)
+    if not simulationEnabled then
+        print("Simulation is OFF. Event ignored:", eventName)
+        return
+    end
+
+    print("Event sent to server:", eventName, data)
+
+    if eventName == "MovePlayer" then
+        player.Position.x = player.Position.x + data.x + math.random(-2,2)
+        player.Position.y = player.Position.y + data.y + math.random(-2,2)
+        player.Position.z = player.Position.z + data.z + math.random(-2,2)
+    elseif eventName == "ChangeHealth" then
+        player.Health = player.Health + data.amount
+        if player.Health > 100 then player.Health = 100 end
+        if player.Health < 0 then player.Health = 0 end
+    end
+end
+
+local function executeCommand(commandName, data)
+    sendEventToServer(commandName, data)
+    print("Current player state:", player)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SimulationGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 200, 0, 50)
+ToggleButton.Position = UDim2.new(0.5, -100, 0.1, 0)
+ToggleButton.Text = "Simulation: ON"
+ToggleButton.Parent = ScreenGui
+
+ToggleButton.MouseButton1Click:Connect(function()
+    simulationEnabled = not simulationEnabled
+    ToggleButton.Text = "Simulation: " .. (simulationEnabled and "ON" or "OFF")
+end)
+
+executeCommand("MovePlayer", {x=5, y=0, z=0})
+executeCommand("ChangeHealth", {amount=-20})
+executeCommand("MovePlayer", {x=-3, y=0, z=2})
