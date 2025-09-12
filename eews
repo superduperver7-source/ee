@@ -1,0 +1,32 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerChar = player.Character or player.CharacterAdded:Wait()
+
+local speedEnabled = false
+local SPEED_MULT = 3
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    local humanoid = playerChar:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        if speedEnabled then
+            humanoid.WalkSpeed = 16 * SPEED_MULT
+        else
+            humanoid.WalkSpeed = 16
+        end
+    end
+end)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SpeedHub"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local ToggleSpeed = Instance.new("TextButton")
+ToggleSpeed.Size = UDim2.new(0, 200, 0, 50)
+ToggleSpeed.Position = UDim2.new(0.5, -100, 0.1, 0)
+ToggleSpeed.Text = "Speed: OFF"
+ToggleSpeed.Parent = ScreenGui
+
+ToggleSpeed.MouseButton1Click:Connect(function()
+    speedEnabled = not speedEnabled
+    ToggleSpeed.Text = "Speed: " .. (speedEnabled and "ON" or "OFF")
+end)
