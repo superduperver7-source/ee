@@ -1,0 +1,39 @@
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local targetPart = workspace:FindFirstChild("Part1")
+local moving = false
+local SPEED = 20
+
+local function moveToTarget()
+    if not targetPart or not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    moving = true
+    while moving and hrp.Position ~= targetPart.Position do
+        local direction = (targetPart.Position - hrp.Position)
+        local distance = direction.Magnitude
+        if distance < 0.1 then break end
+        direction = direction.Unit
+        hrp.CFrame = hrp.CFrame + direction * SPEED * game:GetService("RunService").Heartbeat:Wait()
+    end
+    moving = false
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FixedMovementGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local MoveButton = Instance.new("TextButton")
+MoveButton.Size = UDim2.new(0,200,0,50)
+MoveButton.Position = UDim2.new(0.5,-100,0.1,0)
+MoveButton.Text = "Move to Part1"
+MoveButton.Parent = ScreenGui
+
+MoveButton.MouseButton1Click:Connect(function()
+    if not moving then
+        spawn(moveToTarget)
+    end
+end)
