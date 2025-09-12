@@ -1,0 +1,115 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerChar = player.Character or player.CharacterAdded:Wait()
+local abilities = {
+    invisibility = false,
+    speedBoost = false,
+    jumpBoost = false,
+    fakeHealth = false
+}
+local fallOffset = 0
+local SPEED_MULT = 2
+local JUMP_MULT = 2
+local FALL_SPEED = -5
+
+local function logAction(action, data)
+    print("[Hub Simulation] "..action..":", data)
+end
+
+local function moveVisualParts(offset)
+    for _, part in pairs(playerChar:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.CFrame = part.CFrame + offset
+        end
+    end
+end
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if abilities.invisibility then
+        fallOffset = fallOffset + FALL_SPEED
+        moveVisualParts(Vector3.new(0, fallOffset, 0))
+        logAction("Invisibility visual move", {FallOffset=fallOffset})
+    end
+    if abilities.speedBoost then
+        local humanoid = playerChar:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 16 * SPEED_MULT
+        end
+    else
+        local humanoid = playerChar:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 16
+        end
+    end
+    if abilities.jumpBoost then
+        local humanoid = playerChar:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = 50 * JUMP_MULT
+        end
+    else
+        local humanoid = playerChar:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = 50
+        end
+    end
+end)
+
+local function setFakeHealth(amount)
+    local humanoid = playerChar:FindFirstChildOfClass("Humanoid")
+    if humanoid and abilities.fakeHealth then
+        humanoid.Health = math.clamp(humanoid.Health + amount, 0, humanoid.MaxHealth)
+        logAction("Fake health changed", humanoid.Health)
+    end
+end
+
+local function teleportTo(partName)
+    local target = workspace:FindFirstChild(partName)
+    if target then
+        playerChar:MoveTo(target.Position)
+        logAction("Teleported to", partName)
+    else
+        logAction("Teleport failed, part not found", partName)
+    end
+end
+
+local function createHubGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "MultiAbilityHub"
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    local function makeButton(name, position, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0,200,0,50)
+        btn.Position = position
+        btn.Text = name
+        btn.Parent = ScreenGui
+        btn.MouseButton1Click:Connect(callback)
+    end
+
+    makeButton("Toggle Invisibility", UDim2.new(0.5,-100,0.1,0), function()
+        abilities.invisibility = not abilities.invisibility
+        fallOffset = 0
+        logAction("Invisibility toggled", abilities.invisibility)
+    end)
+
+    makeButton("Toggle Speed Boost", UDim2.new(0.5,-100,0.25,0), function()
+        abilities.speedBoost = not abilities.speedBoost
+        logAction("Speed Boost toggled", abilities.speedBoost)
+    end)
+
+    makeButton("Toggle Jump Boost", UDim2.new(0.5,-100,0.4,0), function()
+        abilities.jumpBoost = not abilities.jumpBoost
+        logAction("Jump Boost toggled", abilities.jumpBoost)
+    end)
+
+    makeButton("Toggle Fake Health", UDim2.new(0.5,-100,0.55,0), function()
+        abilities.fakeHealth = not abilities.fakeHealth
+        logAction("Fake Health toggled", abilities.fakeHealth)
+    end)
+
+    makeButton("Teleport to Part1", UDim2.new(0.5,-100,0.7,0), function()
+        teleportTo("Part1")
+    end)
+end
+
+createHubGUI()
