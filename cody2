@@ -1,0 +1,63 @@
+local player = {Health = 100, Position = {x=0, y=0, z=0}}
+local simulationEnabled = true
+local invisibilityEnabled = false
+local fallOffset = 0
+
+local OriginalSend = function(eventName, data)
+    print("Original event sent:", eventName, data)
+end
+
+local function sendEventToServer(eventName, data)
+    if not simulationEnabled then
+        print("Simulation OFF, event ignored:", eventName)
+        return
+    end
+
+    if invisibilityEnabled and eventName == "MovePlayer" then
+        fallOffset = fallOffset - 5
+        local fakeX = player.Position.x + (data.x or 0)
+        local fakeY = player.Position.y + (data.y or 0)
+        local fakeZ = player.Position.z + (data.z or 0)
+        OriginalSend(eventName, {x=fakeX, y=fakeY, z=fakeZ})
+        print("Invisibility ON - visual model falling. Sent fake position:", {x=fakeX, y=fakeY, z=fakeZ})
+    else
+        player.Position.x = player.Position.x + (data.x or 0)
+        player.Position.y = player.Position.y + (data.y or 0)
+        player.Position.z = player.Position.z + (data.z or 0)
+        OriginalSend(eventName, data)
+        print("Event sent normally:", eventName, data)
+    end
+end
+
+local function executeCommand(commandName, data)
+    sendEventToServer(commandName, data)
+    print("Current player state:", player, "Fall offset:", fallOffset)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SimulationGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local ToggleSim = Instance.new("TextButton")
+ToggleSim.Size = UDim2.new(0, 200, 0, 50)
+ToggleSim.Position = UDim2.new(0.5, -100, 0.1, 0)
+ToggleSim.Text = "Simulation: ON"
+ToggleSim.Parent = ScreenGui
+ToggleSim.MouseButton1Click:Connect(function()
+    simulationEnabled = not simulationEnabled
+    ToggleSim.Text = "Simulation: " .. (simulationEnabled and "ON" or "OFF")
+end)
+
+local ToggleInvis = Instance.new("TextButton")
+ToggleInvis.Size = UDim2.new(0, 200, 0, 50)
+ToggleInvis.Position = UDim2.new(0.5, -100, 0.25, 0)
+ToggleInvis.Text = "Invisibility: OFF"
+ToggleInvis.Parent = ScreenGui
+ToggleInvis.MouseButton1Click:Connect(function()
+    invisibilityEnabled = not invisibilityEnabled
+    fallOffset = 0
+    ToggleInvis.Text = "Invisibility: " .. (invisibilityEnabled and "ON" or "OFF")
+end)
+
+executeCommand("MovePlayer", {x=5, y=0, z=0})
+executeCommand("MovePlayer", {x=-3, y=0, z=2})
