@@ -1,0 +1,124 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local StealRequest = Instance.new("RemoteEvent", ReplicatedStorage)
+StealRequest.Name = "StealRequest"
+local FinalizeSteal = Instance.new("RemoteEvent", ReplicatedStorage)
+FinalizeSteal.Name = "FinalizeSteal"
+
+local activeSteals = {}
+local STEAL_HOLD_TIME = 2.0
+local MAX_TELEPORT_DIST = 8
+local MAX_TELEPORT_WINDOW = 0.2
+
+local function issueToken()
+    return tostring(os.time()) .. "-" .. tostring(math.random(1,1e9))
+end
+
+StealRequest.OnServerEvent:Connect(function(player, objectId, playerPosition)
+    local obj = workspace:FindFirstChild(objectId)
+    if not obj then return end
+    local objPos = obj.PrimaryPart and obj.PrimaryPart.Position or obj.Position
+    if (playerPosition - objPos).Magnitude > 10 then return end
+    activeSteals[player] = {
+        token = issueToken(),
+        objectId = objectId,
+        startTime = tick(),
+        lastPos = playerPosition,
+        used = false,
+    }
+    StealRequest:FireClient(player, "Started", activeSteals[player].token)
+end)
+
+FinalizeSteal.OnServerEvent:Connect(function(player, token, finalPlayerPosition)
+    local data = activeSteals[player]
+    if not data then return end
+    if data.used then return end
+    if data.token ~= token then return end
+    local now = tick()
+    local elapsed = now - data.startTime
+    if elapsed < STEAL_HOLD_TIME - 0.12 then return end
+    local dist = (finalPlayerPosition - data.lastPos).Magnitude
+    local timeWindow = now - data.startTime
+    if dist > MAX_TELEPORT_DIST and timeWindow < MAX_TELEPORT_WINDOW then
+        activeSteals[player] = nil
+        FinalizeSteal:FireClient(player, "DeniedTeleport")
+        return
+    end
+    local obj = workspace:FindFirstChild(data.objectId)
+    if not obj or obj:GetAttribute("Owner") then
+        FinalizeSteal:FireClient(player, "DeniedTaken")
+        activeSteals[player] = nil
+        return
+    end
+    obj:SetAttribute("Owner", player.UserId)
+    data.used = true
+    activeSteals[player] = nil
+    FinalizeSteal:FireClient(player, "Success")
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "StealGui"
+        screenGui.ResetOnSpawn = false
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+
+        local statusLabel = Instance.new("TextLabel")
+        statusLabel.Size = UDim2.new(0, 200, 0, 50)
+        statusLabel.Position = UDim2.new(0.5, -100, 0.9, 0)
+        statusLabel.BackgroundColor3 = Color3.fromRGB(0,0,0)
+        statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
+        statusLabel.TextScaled = true
+        statusLabel.Text = "Press E to steal"
+        statusLabel.Parent = screenGui
+
+        local currentToken = nil
+        local stealing = false
+        local holdStart = 0
+
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Enum.KeyCode.E and not stealing then
+                stealing = true
+                holdStart = tick()
+                local target = workspace:FindFirstChild("Brainrot")
+                if target then
+                    StealRequest:FireServer(target.Name, player.Character.HumanoidRootPart.Position)
+                end
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input, gameProcessed)
+            if input.KeyCode == Enum.KeyCode.E and stealing then
+                stealing = false
+                if currentToken and tick() - holdStart >= 2 then
+                    FinalizeSteal:FireServer(currentToken, player.Character.HumanoidRootPart.Position)
+                else
+                    statusLabel.Text = "Released too early"
+                end
+            end
+        end)
+
+        StealRequest.OnClientEvent:Connect(function(status, token)
+            if status == "Started" then
+                currentToken = token
+                statusLabel.Text = "Stealing..."
+            end
+        end)
+
+        FinalizeSteal.OnClientEvent:Connect(function(result)
+            if result == "Success" then
+                statusLabel.Text = "Steal success!"
+            elseif result == "DeniedTeleport" then
+                statusLabel.Text = "Denied: teleport detected"
+            elseif result == "DeniedTaken" then
+                statusLabel.Text = "Denied: already taken"
+            else
+                statusLabel.Text = "Steal failed"
+            end
+            currentToken = nil
+        end)
+    end)
+end)
